@@ -99,7 +99,7 @@ const handleLeaveRoom = () => {
 }
 
 .app__glow--2 {
-  width: 500px;
+  width: 500px; 
   height: 500px;
   background: var(--neon-cyan);
   bottom: -150px;

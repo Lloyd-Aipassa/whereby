@@ -6,7 +6,7 @@ import { useAdmin } from '../composables/useAdmin'
 const emit = defineEmits(['join-room'])
 
 const { rooms, loading, error, subscribeToRooms, createRoom, isRoomFull, deleteRoom } = useGameroom()
-const { isAdmin, loginError, login, logout } = useAdmin()
+const { isAdmin, adminName, loginError, login, logout } = useAdmin()
 
 const showCreateModal = ref(false)
 const showLoginModal = ref(false)
@@ -90,27 +90,39 @@ const handleDeleteRoom = async (roomId) => {
       </div>
       <p class="room-list__subtitle">Join a room or create your own</p>
 
-      <!-- Admin Login Button -->
-      <button
-        v-if="!isAdmin"
-        class="room-list__admin-btn"
-        @click="showLoginModal = true"
-        title="Admin Login"
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M12 2a5 5 0 1 0 5 5 5 5 0 0 0-5-5zM12 14a9 9 0 0 0-9 9h18a9 9 0 0 0-9-9z"/>
-        </svg>
-      </button>
-      <button
-        v-else
-        class="room-list__admin-btn room-list__admin-btn--active"
-        @click="handleLogout"
-        title="Logout (Admin)"
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
-        </svg>
-      </button>
+      <!-- Admin Controls -->
+      <div class="room-list__admin-controls">
+        <!-- Not logged in: Show login button -->
+        <button
+          v-if="!isAdmin"
+          class="room-list__admin-btn"
+          @click="showLoginModal = true"
+          title="Admin Login"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2a5 5 0 1 0 5 5 5 5 0 0 0-5-5zM12 14a9 9 0 0 0-9 9h18a9 9 0 0 0-9-9z"/>
+          </svg>
+        </button>
+
+        <!-- Logged in: Show status and logout -->
+        <div v-else class="room-list__admin-status">
+          <div class="room-list__admin-badge">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2a5 5 0 1 0 5 5 5 5 0 0 0-5-5zM12 14a9 9 0 0 0-9 9h18a9 9 0 0 0-9-9z"/>
+            </svg>
+            <span>{{ adminName }} logged in</span>
+          </div>
+          <button
+            class="room-list__logout-btn"
+            @click="handleLogout"
+            title="Logout"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
+            </svg>
+          </button>
+        </div>
+      </div>
     </div>
 
     <button class="room-list__create-btn" @click="showCreateModal = true">
@@ -403,10 +415,13 @@ const handleDeleteRoom = async (roomId) => {
   margin: 0;
 }
 
-.room-list__admin-btn {
+.room-list__admin-controls {
   position: absolute;
   top: 0;
   right: 0;
+}
+
+.room-list__admin-btn {
   width: 40px;
   height: 40px;
   display: flex;
@@ -427,15 +442,61 @@ const handleDeleteRoom = async (roomId) => {
   transform: translateY(-2px);
 }
 
-.room-list__admin-btn--active {
-  background: rgba(0, 255, 247, 0.1);
-  color: var(--neon-cyan);
-  border-color: var(--neon-cyan);
-}
-
 .room-list__admin-btn svg {
   width: 20px;
   height: 20px;
+}
+
+.room-list__admin-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.room-list__admin-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.875rem;
+  background: rgba(0, 255, 247, 0.1);
+  border: 1px solid var(--neon-cyan);
+  border-radius: 20px;
+  color: var(--neon-cyan);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 500;
+  box-shadow: 0 0 15px rgba(0, 255, 247, 0.2);
+}
+
+.room-list__admin-badge svg {
+  width: 16px;
+  height: 16px;
+}
+
+.room-list__logout-btn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 0, 128, 0.1);
+  border: 1px solid rgba(255, 0, 128, 0.3);
+  border-radius: 10px;
+  color: var(--neon-pink);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.room-list__logout-btn:hover {
+  background: rgba(255, 0, 128, 0.2);
+  border-color: var(--neon-pink);
+  transform: translateY(-2px);
+  box-shadow: 0 0 15px rgba(255, 0, 128, 0.3);
+}
+
+.room-list__logout-btn svg {
+  width: 18px;
+  height: 18px;
 }
 
 .room-list__create-btn {

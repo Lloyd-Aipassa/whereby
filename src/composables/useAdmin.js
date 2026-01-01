@@ -1,10 +1,10 @@
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
 // Admin credentials - multiple admins with same password
 const ADMIN_ACCOUNTS = [
-  { email: 'lloyd.aipassa@gmail.com', password: 'Aipassa321!' },
-  { email: 'ioaioassa@gmail.com', password: 'Aipassa321!' },
-  { email: 'mickeyaipassa@hotmail.com', password: 'Aipassa321!' }
+  { email: 'lloyd.aipassa@gmail.com', password: 'Aipassa321!', name: 'Lloyd' },
+  { email: 'ioaioassa@gmail.com', password: 'Aipassa321!', name: 'Manoe' },
+  { email: 'mickeyaipassa@hotmail.com', password: 'Aipassa321!', name: 'Mickey' }
 ]
 
 // Global admin state (shared across components)
@@ -13,6 +13,13 @@ const adminEmail = ref(null)
 
 export function useAdmin() {
   const loginError = ref(null)
+
+  // Get the logged-in admin's name
+  const adminName = computed(() => {
+    if (!adminEmail.value) return null
+    const admin = ADMIN_ACCOUNTS.find(a => a.email === adminEmail.value)
+    return admin ? admin.name : null
+  })
 
   const login = (email, password) => {
     loginError.value = null
@@ -40,6 +47,7 @@ export function useAdmin() {
   return {
     isAdmin,
     adminEmail,
+    adminName,
     loginError,
     login,
     logout
