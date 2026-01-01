@@ -54,10 +54,9 @@ onMounted(async () => {
 })
 
 // Initialize voice chat when userId is set
-watch(userId, async (newId) => {
+watch(userId, (newId) => {
   if (newId) {
-    const { useVoiceChat: createVoiceChat } = await import('../composables/useVoiceChat')
-    voiceChat = createVoiceChat(props.roomId, newId)
+    voiceChat = useVoiceChat(props.roomId, newId)
   }
 })
 
