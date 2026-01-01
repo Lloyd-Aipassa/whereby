@@ -50,10 +50,11 @@ export function useGameroom() {
     error.value = null
 
     try {
+      const userId = generateUserId()
       const roomRef = await addDoc(collection(db, 'gamerooms'), {
         name: roomName,
         users: [{
-          id: generateUserId(),
+          id: userId,
           username,
           joinedAt: Date.now()
         }],
@@ -61,7 +62,7 @@ export function useGameroom() {
         maxUsers: 4
       })
 
-      return roomRef.id
+      return { roomId: roomRef.id, userId }
     } catch (err) {
       console.error('Error creating room:', err)
       error.value = 'Failed to create room'
@@ -72,13 +73,13 @@ export function useGameroom() {
   }
 
   // Join an existing room
-  const joinRoom = async (roomId, username) => {
+  const joinRoom = async (roomId, username, existingUserId = null) => {
     loading.value = true
     error.value = null
 
     try {
       const roomRef = doc(db, 'gamerooms', roomId)
-      const userId = generateUserId()
+      const userId = existingUserId || generateUserId()
 
       // Subscribe to room updates
       roomUnsubscribe = onSnapshot(roomRef, (snapshot) => {
@@ -91,14 +92,16 @@ export function useGameroom() {
         }
       })
 
-      // Add user to room
-      await updateDoc(roomRef, {
-        users: arrayUnion({
-          id: userId,
-          username,
-          joinedAt: Date.now()
+      // Only add user to room if not already added (no existingUserId)
+      if (!existingUserId) {
+        await updateDoc(roomRef, {
+          users: arrayUnion({
+            id: userId,
+            username,
+            joinedAt: Date.now()
+          })
         })
-      })
+      }
 
       // Subscribe to messages
       const messagesRef = collection(db, 'gamerooms', roomId, 'messages')
@@ -250,6 +253,7 @@ export function useGameroom() {
     joinRoom,
     leaveRoom,
     sendMessage,
+    deleteRoom,
     isRoomFull,
     generateUserId
   }

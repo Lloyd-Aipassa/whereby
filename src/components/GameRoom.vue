@@ -2,6 +2,7 @@
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useGameroom } from '../composables/useGameroom'
 import { useVoiceChat } from '../composables/useVoiceChat'
+import { useAdmin } from '../composables/useAdmin'
 import UserList from './UserList.vue'
 import VoiceControls from './VoiceControls.vue'
 import ChatMessage from './ChatMessage.vue'
@@ -14,6 +15,10 @@ const props = defineProps({
   username: {
     type: String,
     required: true
+  },
+  userId: {
+    type: String,
+    default: null
   }
 })
 
@@ -29,6 +34,8 @@ const {
   leaveRoom,
   sendMessage
 } = useGameroom()
+
+const { isAdmin } = useAdmin()
 
 const userId = ref(null)
 const messageInput = ref('')
@@ -47,7 +54,7 @@ const otherUsers = computed(() => {
 // Join room on mount
 onMounted(async () => {
   try {
-    userId.value = await joinRoom(props.roomId, props.username)
+    userId.value = await joinRoom(props.roomId, props.username, props.userId)
   } catch (err) {
     console.error('Failed to join room:', err)
   }
@@ -129,6 +136,38 @@ const handleToggleMute = () => {
   }
 }
 
+const handleKickUser = async (user) => {
+  if (!isAdmin.value) return
+
+  try {
+    const { db } = await import('../firebase/config')
+    const { doc, updateDoc, arrayRemove } = await import('firebase/firestore')
+
+    const docRef = doc(db, 'gamerooms', props.roomId)
+
+    await updateDoc(docRef, {
+      users: arrayRemove(user)
+    })
+
+    console.log(`Kicked ${user.username} from room`)
+  } catch (err) {
+    console.error('Error kicking user:', err)
+  }
+}
+
+// Watch if we got kicked (user list no longer contains our ID)
+watch(users, (newUsers, oldUsers) => {
+  // Only check if we already joined and had users before
+  if (userId.value && oldUsers && oldUsers.length > 0 && newUsers.length > 0) {
+    const stillInRoom = newUsers.some(u => u.id === userId.value)
+    if (!stillInRoom) {
+      // We got kicked!
+      console.log('You were kicked from the room')
+      handleLeaveRoom()
+    }
+  }
+}, { deep: true })
+
 // Cleanup on unmount
 onUnmounted(async () => {
   if (voiceChat) {
@@ -169,6 +208,8 @@ onUnmounted(async () => {
           :current-user-id="userId"
           :voice-active="isVoiceActive"
           :voice-chat="voiceChat"
+          :is-admin="isAdmin"
+          @kick-user="handleKickUser"
         />
 
         <VoiceControls

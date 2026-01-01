@@ -17,8 +17,14 @@ const props = defineProps({
   voiceChat: {
     type: Object,
     default: null
+  },
+  isAdmin: {
+    type: Boolean,
+    default: false
   }
 })
+
+const emit = defineEmits(['kick-user'])
 
 const sortedUsers = computed(() => {
   // Put current user first
@@ -43,6 +49,12 @@ const getAvatarColor = (index) => {
     'linear-gradient(135deg, #39ff14, #00d4aa)'
   ]
   return colors[index % colors.length]
+}
+
+const handleKick = (user) => {
+  if (confirm(`Kick ${user.username} from the room?`)) {
+    emit('kick-user', user)
+  }
 }
 </script>
 
@@ -96,6 +108,18 @@ const getAvatarColor = (index) => {
             </template>
           </span>
         </div>
+
+        <!-- Admin Kick Button -->
+        <button
+          v-if="isAdmin && user.id !== currentUserId"
+          class="user-item__kick"
+          @click="handleKick(user)"
+          title="Kick user"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
+          </svg>
+        </button>
       </div>
 
       <!-- Empty slots -->
@@ -260,6 +284,34 @@ const getAvatarColor = (index) => {
   font-family: var(--font-mono);
   font-size: 0.7rem;
   color: var(--text-muted);
+}
+
+.user-item__kick {
+  margin-left: auto;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 0, 128, 0.1);
+  border: 1px solid rgba(255, 0, 128, 0.3);
+  border-radius: 8px;
+  color: var(--neon-pink);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.user-item__kick:hover {
+  background: rgba(255, 0, 128, 0.2);
+  border-color: var(--neon-pink);
+  transform: scale(1.05);
+  box-shadow: 0 0 15px rgba(255, 0, 128, 0.3);
+}
+
+.user-item__kick svg {
+  width: 16px;
+  height: 16px;
 }
 
 @keyframes pulse-glow {

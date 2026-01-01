@@ -6,16 +6,19 @@ import GameRoom from './components/GameRoom.vue'
 const currentView = ref('rooms') // 'rooms' | 'game'
 const activeRoom = ref(null)
 const activeUsername = ref('')
+const activeUserId = ref(null)
 
-const handleJoinRoom = ({ roomId, username }) => {
+const handleJoinRoom = ({ roomId, username, userId = null }) => {
   activeRoom.value = roomId
   activeUsername.value = username
+  activeUserId.value = userId
   currentView.value = 'game'
 }
 
 const handleLeaveRoom = () => {
   activeRoom.value = null
   activeUsername.value = ''
+  activeUserId.value = null
   currentView.value = 'rooms'
 }
 </script>
@@ -42,6 +45,7 @@ const handleLeaveRoom = () => {
         key="game"
         :room-id="activeRoom"
         :username="activeUsername"
+        :user-id="activeUserId"
         @leave-room="handleLeaveRoom"
       />
     </Transition>

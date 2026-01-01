@@ -1,16 +1,21 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useGameroom } from '../composables/useGameroom'
+import { useAdmin } from '../composables/useAdmin'
 
 const emit = defineEmits(['join-room'])
 
-const { rooms, loading, error, subscribeToRooms, createRoom, isRoomFull } = useGameroom()
+const { rooms, loading, error, subscribeToRooms, createRoom, isRoomFull, deleteRoom } = useGameroom()
+const { isAdmin, loginError, login, logout } = useAdmin()
 
 const showCreateModal = ref(false)
+const showLoginModal = ref(false)
 const newRoomName = ref('')
 const username = ref('')
 const joiningRoomId = ref(null)
 const joinUsername = ref('')
+const adminEmail = ref('')
+const adminPassword = ref('')
 
 onMounted(() => {
   subscribeToRooms()
@@ -20,9 +25,9 @@ const handleCreateRoom = async () => {
   if (!newRoomName.value.trim() || !username.value.trim()) return
 
   try {
-    const roomId = await createRoom(newRoomName.value.trim(), username.value.trim())
+    const { roomId, userId } = await createRoom(newRoomName.value.trim(), username.value.trim())
     showCreateModal.value = false
-    emit('join-room', { roomId, username: username.value.trim() })
+    emit('join-room', { roomId, username: username.value.trim(), userId })
     newRoomName.value = ''
     username.value = ''
   } catch (err) {
@@ -50,6 +55,26 @@ const cancelJoin = () => {
   joiningRoomId.value = null
   joinUsername.value = ''
 }
+
+const handleLogin = () => {
+  if (login(adminEmail.value, adminPassword.value)) {
+    showLoginModal.value = false
+    adminEmail.value = ''
+    adminPassword.value = ''
+  }
+}
+
+const handleLogout = () => {
+  logout()
+}
+
+const handleDeleteRoom = async (roomId) => {
+  if (!isAdmin.value) return
+
+  if (confirm('Are you sure you want to delete this room?')) {
+    await deleteRoom(roomId)
+  }
+}
 </script>
 
 <template>
@@ -64,6 +89,28 @@ const cancelJoin = () => {
         <h1 class="room-list__title">GAMEROOMS</h1>
       </div>
       <p class="room-list__subtitle">Join a room or create your own</p>
+
+      <!-- Admin Login Button -->
+      <button
+        v-if="!isAdmin"
+        class="room-list__admin-btn"
+        @click="showLoginModal = true"
+        title="Admin Login"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2a5 5 0 1 0 5 5 5 5 0 0 0-5-5zM12 14a9 9 0 0 0-9 9h18a9 9 0 0 0-9-9z"/>
+        </svg>
+      </button>
+      <button
+        v-else
+        class="room-list__admin-btn room-list__admin-btn--active"
+        @click="handleLogout"
+        title="Logout (Admin)"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
+        </svg>
+      </button>
     </div>
 
     <button class="room-list__create-btn" @click="showCreateModal = true">
@@ -101,6 +148,19 @@ const cancelJoin = () => {
         class="room-card"
         :class="{ 'room-card--full': isRoomFull(room) }"
       >
+        <!-- Admin Delete Button -->
+        <button
+          v-if="isAdmin"
+          class="room-card__delete"
+          @click.stop="handleDeleteRoom(room.id)"
+          title="Delete Room"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+          </svg>
+        </button>
+
         <div class="room-card__header">
           <h3 class="room-card__name">{{ room.name }}</h3>
           <span
@@ -238,6 +298,63 @@ const cancelJoin = () => {
         </div>
       </div>
     </Teleport>
+
+    <!-- Admin Login Modal -->
+    <Teleport to="body">
+      <div v-if="showLoginModal" class="modal-overlay" @click.self="showLoginModal = false">
+        <div class="modal">
+          <div class="modal__header">
+            <h2>Admin Login</h2>
+            <button class="modal__close" @click="showLoginModal = false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+
+          <div class="modal__body">
+            <div v-if="loginError" class="login-error">
+              {{ loginError }}
+            </div>
+
+            <div class="input-group">
+              <label>Email</label>
+              <input
+                v-model="adminEmail"
+                type="email"
+                placeholder="Enter admin email..."
+                @keyup.enter="handleLogin"
+                autofocus
+              />
+            </div>
+
+            <div class="input-group">
+              <label>Password</label>
+              <input
+                v-model="adminPassword"
+                type="password"
+                placeholder="Enter password..."
+                @keyup.enter="handleLogin"
+              />
+            </div>
+          </div>
+
+          <div class="modal__footer">
+            <button class="btn btn--secondary" @click="showLoginModal = false">
+              Cancel
+            </button>
+            <button
+              class="btn btn--primary"
+              :disabled="!adminEmail.trim() || !adminPassword.trim()"
+              @click="handleLogin"
+            >
+              Login
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -251,6 +368,7 @@ const cancelJoin = () => {
 .room-list__header {
   text-align: center;
   margin-bottom: 3rem;
+  position: relative;
 }
 
 .room-list__title-wrapper {
@@ -283,6 +401,41 @@ const cancelJoin = () => {
   color: var(--text-muted);
   font-size: 1.1rem;
   margin: 0;
+}
+
+.room-list__admin-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--void-lighter);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.room-list__admin-btn:hover {
+  background: var(--void-light);
+  color: var(--neon-cyan);
+  border-color: var(--neon-cyan);
+  transform: translateY(-2px);
+}
+
+.room-list__admin-btn--active {
+  background: rgba(0, 255, 247, 0.1);
+  color: var(--neon-cyan);
+  border-color: var(--neon-cyan);
+}
+
+.room-list__admin-btn svg {
+  width: 20px;
+  height: 20px;
 }
 
 .room-list__create-btn {
@@ -384,6 +537,7 @@ const cancelJoin = () => {
   padding: 1.5rem;
   transition: all 0.3s ease;
   animation: fadeInUp 0.5s ease backwards;
+  position: relative;
 }
 
 .room-card:nth-child(1) { animation-delay: 0s; }
@@ -405,6 +559,42 @@ const cancelJoin = () => {
   transform: none;
   border-color: var(--glass-border);
   box-shadow: none;
+}
+
+.room-card__delete {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 0, 128, 0.8);
+  border: 1px solid var(--neon-pink);
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+  opacity: 0;
+  transform: scale(0.8);
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.room-card:hover .room-card__delete {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.room-card__delete:hover {
+  background: var(--neon-pink);
+  box-shadow: 0 0 20px rgba(255, 0, 128, 0.5);
+  transform: scale(1.1);
+}
+
+.room-card__delete svg {
+  width: 18px;
+  height: 18px;
 }
 
 .room-card__header {
@@ -618,6 +808,16 @@ const cancelJoin = () => {
 .input-group input::placeholder {
   color: var(--text-muted);
   opacity: 0.5;
+}
+
+.login-error {
+  padding: 0.875rem;
+  background: rgba(255, 0, 128, 0.1);
+  border: 1px solid var(--neon-pink);
+  border-radius: 8px;
+  color: var(--neon-pink);
+  font-size: 0.9rem;
+  text-align: center;
 }
 
 .btn {
