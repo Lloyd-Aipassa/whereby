@@ -282,8 +282,8 @@ onUnmounted(async () => {
 .gameroom {
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  max-height: 100vh;
+  height: 100svh;
+  max-height: 100svh;
   overflow: hidden;
 }
 
