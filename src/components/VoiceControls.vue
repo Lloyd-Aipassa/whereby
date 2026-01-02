@@ -381,7 +381,6 @@ const emit = defineEmits(['toggle-voice', 'toggle-mute']);
     justify-content: center;
     padding: 0.75rem;
     border-radius: 0;
-    margin-top: 20px;
   }
 
   .voice-controls__btn span {
