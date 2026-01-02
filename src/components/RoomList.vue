@@ -79,18 +79,8 @@ const handleDeleteRoom = async (roomId) => {
 
 <template>
   <div class="room-list">
-    <div class="room-list__header">
-      <div class="room-list__title-wrapper">
-        <div class="room-list__icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-          </svg>
-        </div>
-        <h1 class="room-list__title">GAMEROOMS</h1>
-      </div>
-      <p class="room-list__subtitle">Join a room or create your own</p>
-
-      <!-- Admin Controls -->
+    <!-- Admin Controls Header -->
+    <div class="room-list__top-bar">
       <div class="room-list__admin-controls">
         <!-- Not logged in: Show login button -->
         <button
@@ -123,6 +113,18 @@ const handleDeleteRoom = async (roomId) => {
           </button>
         </div>
       </div>
+    </div>
+
+    <div class="room-list__header">
+      <div class="room-list__title-wrapper">
+        <div class="room-list__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+          </svg>
+        </div>
+        <h1 class="room-list__title">GAMEROOMS</h1>
+      </div>
+      <p class="room-list__subtitle">Join a room or create your own</p>
     </div>
 
     <button class="room-list__create-btn" @click="showCreateModal = true">
@@ -377,10 +379,15 @@ const handleDeleteRoom = async (roomId) => {
   padding: 2rem;
 }
 
+.room-list__top-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1.5rem;
+}
+
 .room-list__header {
   text-align: center;
   margin-bottom: 3rem;
-  position: relative;
 }
 
 .room-list__title-wrapper {
@@ -416,9 +423,8 @@ const handleDeleteRoom = async (roomId) => {
 }
 
 .room-list__admin-controls {
-  position: absolute;
-  top: 0;
-  right: 0;
+  display: flex;
+  align-items: center;
 }
 
 .room-list__admin-btn {
@@ -451,6 +457,7 @@ const handleDeleteRoom = async (roomId) => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  flex-direction: row-reverse;
 }
 
 .room-list__admin-badge {

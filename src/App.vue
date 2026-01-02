@@ -30,7 +30,6 @@ const handleLeaveRoom = () => {
       <div class="app__grid"></div>
       <div class="app__glow app__glow--1"></div>
       <div class="app__glow app__glow--2"></div>
-      <div class="app__scanline"></div>
     </div>
 
     <!-- Main content -->
@@ -99,7 +98,7 @@ const handleLeaveRoom = () => {
 }
 
 .app__glow--2 {
-  width: 500px; 
+  width: 500px;
   height: 500px;
   background: var(--neon-cyan);
   bottom: -150px;
@@ -107,34 +106,11 @@ const handleLeaveRoom = () => {
   animation-delay: -10s;
 }
 
-.app__scanline {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(0, 255, 247, 0.1),
-    rgba(0, 255, 247, 0.3),
-    rgba(0, 255, 247, 0.1),
-    transparent
-  );
-  animation: scanline 8s linear infinite;
-  pointer-events: none;
-}
-
 @keyframes float {
   0%, 100% { transform: translate(0, 0) scale(1); }
   25% { transform: translate(30px, -30px) scale(1.05); }
   50% { transform: translate(-20px, 20px) scale(0.95); }
   75% { transform: translate(-30px, -20px) scale(1.02); }
-}
-
-@keyframes scanline {
-  0% { transform: translateY(-100%); }
-  100% { transform: translateY(100vh); }
 }
 
 /* Page transitions */
