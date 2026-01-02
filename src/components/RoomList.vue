@@ -155,13 +155,14 @@ const handleDeleteRoom = async (roomId) => {
       <span>Be the first to create one!</span>
     </div>
 
-    <div v-else class="room-list__grid">
-      <div
-        v-for="room in rooms"
-        :key="room.id"
-        class="room-card"
-        :class="{ 'room-card--full': isRoomFull(room) }"
-      >
+    <div v-else class="room-list__grid-container">
+      <div class="room-list__grid">
+        <div
+          v-for="room in rooms"
+          :key="room.id"
+          class="room-card"
+          :class="{ 'room-card--full': isRoomFull(room) }"
+        >
         <!-- Admin Delete Button -->
         <button
           v-if="isAdmin"
@@ -212,6 +213,7 @@ const handleDeleteRoom = async (roomId) => {
         <div v-else class="room-card__full-text">
           Room is full
         </div>
+      </div>
       </div>
     </div>
 
@@ -377,6 +379,23 @@ const handleDeleteRoom = async (roomId) => {
   max-width: 900px;
   margin: 0 auto;
   padding: 2rem;
+  position: relative;
+}
+
+.room-list::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url('/hero.jpeg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: var(--hero-opacity);
+  z-index: -1;
+  pointer-events: none;
 }
 
 .room-list__top-bar {
@@ -590,10 +609,16 @@ const handleDeleteRoom = async (roomId) => {
   font-size: 0.9rem;
 }
 
+.room-list__grid-container {
+  position: relative;
+}
+
 .room-list__grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1.5rem;
+  position: relative;
+  z-index: 2;
 }
 
 /* Room Card */
