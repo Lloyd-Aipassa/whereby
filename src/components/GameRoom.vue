@@ -285,6 +285,8 @@ onUnmounted(async () => {
   height: 100svh;
   max-height: 100svh;
   overflow: hidden;
+  /* PWA safe area support for mobile */
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 .gameroom__header {

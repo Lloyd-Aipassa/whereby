@@ -54,8 +54,11 @@ const handleLeaveRoom = () => {
 <style scoped>
 .app {
   min-height: 100vh;
+  height: 100%;
   position: relative;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .app__bg {

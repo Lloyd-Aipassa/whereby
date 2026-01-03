@@ -380,6 +380,9 @@ const handleDeleteRoom = async (roomId) => {
   margin: 0 auto;
   padding: 2rem;
   position: relative;
+  min-height: 100svh;
+  /* PWA safe area support for mobile */
+  padding-bottom: calc(2rem + env(safe-area-inset-bottom));
 }
 
 .room-list::before {
