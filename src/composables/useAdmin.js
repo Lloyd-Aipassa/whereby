@@ -7,9 +7,35 @@ const ADMIN_ACCOUNTS = [
   { email: 'mickeyaipassa@hotmail.com', password: 'Aipassa321!', name: 'Mickey' }
 ]
 
+const ADMIN_SESSION_KEY = 'whereby_admin_session'
+
+// Check for existing admin session in localStorage
+const getStoredAdminEmail = () => {
+  try {
+    return localStorage.getItem(ADMIN_SESSION_KEY)
+  } catch (error) {
+    console.error('Failed to get admin session:', error)
+    return null
+  }
+}
+
 // Global admin state (shared across components)
 const isAdmin = ref(false)
 const adminEmail = ref(null)
+
+// Initialize admin state from localStorage
+const storedEmail = getStoredAdminEmail()
+if (storedEmail) {
+  // Verify that the stored email is still a valid admin
+  const validAdmin = ADMIN_ACCOUNTS.find(admin => admin.email === storedEmail)
+  if (validAdmin) {
+    isAdmin.value = true
+    adminEmail.value = storedEmail
+  } else {
+    // Invalid admin email in storage, clear it
+    localStorage.removeItem(ADMIN_SESSION_KEY)
+  }
+}
 
 export function useAdmin() {
   const loginError = ref(null)
@@ -32,6 +58,14 @@ export function useAdmin() {
     if (validAdmin) {
       isAdmin.value = true
       adminEmail.value = email
+
+      // Save admin session to localStorage
+      try {
+        localStorage.setItem(ADMIN_SESSION_KEY, email)
+      } catch (error) {
+        console.error('Failed to save admin session:', error)
+      }
+
       return true
     } else {
       loginError.value = 'Invalid email or password'
@@ -42,6 +76,13 @@ export function useAdmin() {
   const logout = () => {
     isAdmin.value = false
     adminEmail.value = null
+
+    // Clear admin session from localStorage
+    try {
+      localStorage.removeItem(ADMIN_SESSION_KEY)
+    } catch (error) {
+      console.error('Failed to clear admin session:', error)
+    }
   }
 
   return {
