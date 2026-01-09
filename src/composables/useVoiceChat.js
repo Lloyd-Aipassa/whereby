@@ -114,20 +114,46 @@ export function useVoiceChat(roomId, userId) {
       trickle: true,
       config: {
         iceServers: [
+          // STUN servers
           { urls: 'stun:stun.l.google.com:19302' },
           { urls: 'stun:stun1.l.google.com:19302' },
-          { urls: 'stun:stun2.l.google.com:19302' },
-          { urls: 'stun:stun3.l.google.com:19302' },
-          { urls: 'stun:stun4.l.google.com:19302' }
-        ]
+
+          // Free TURN servers for NAT traversal
+          {
+            urls: 'turn:openrelay.metered.ca:80',
+            username: 'openrelayproject',
+            credential: 'openrelayproject'
+          },
+          {
+            urls: 'turn:openrelay.metered.ca:443',
+            username: 'openrelayproject',
+            credential: 'openrelayproject'
+          },
+          {
+            urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+            username: 'openrelayproject',
+            credential: 'openrelayproject'
+          }
+        ],
+        // More aggressive ICE gathering
+        iceCandidatePoolSize: 10
       }
     })
 
     peers.value[peerId] = {
       peer,
       stream: null,
-      connected: false
+      connected: false,
+      timeout: null
     }
+
+    // Add connection timeout
+    peers.value[peerId].timeout = setTimeout(() => {
+      if (peers.value[peerId] && !peers.value[peerId].connected) {
+        console.error(`Connection to ${peerId} timed out after 30s`)
+        removePeer(peerId)
+      }
+    }, 30000) // 30 second timeout
 
     // Handle signal (offer/answer/ice candidates)
     peer.on('signal', async (signalData) => {
@@ -148,7 +174,14 @@ export function useVoiceChat(roomId, userId) {
     // Handle connection
     peer.on('connect', () => {
       console.log(`Connected to ${peerId}`)
-      peers.value[peerId].connected = true
+      if (peers.value[peerId]) {
+        peers.value[peerId].connected = true
+        // Clear the connection timeout
+        if (peers.value[peerId].timeout) {
+          clearTimeout(peers.value[peerId].timeout)
+          peers.value[peerId].timeout = null
+        }
+      }
     })
 
     // Handle errors
@@ -187,11 +220,26 @@ export function useVoiceChat(roomId, userId) {
           const signal = JSON.parse(data.signal)
           const fromUserId = data.from
 
-          console.log(`Received signal from ${fromUserId}`)
+          console.log(`Received signal from ${fromUserId}, type: ${signal.type}`)
 
-          // Create peer if doesn't exist
+          // Create peer if doesn't exist AND it's an offer
           if (!peers.value[fromUserId]) {
-            await createPeerConnection(fromUserId, false)
+            if (signal.type === 'offer') {
+              console.log(`Creating peer connection for incoming offer from ${fromUserId}`)
+              await createPeerConnection(fromUserId, false)
+
+              // Wait a bit for peer to initialize
+              await new Promise(resolve => setTimeout(resolve, 100))
+            } else {
+              console.warn(`Received ${signal.type} from ${fromUserId} but no peer exists, ignoring`)
+              // Delete the signal and skip
+              try {
+                await deleteDoc(change.doc.ref)
+              } catch (err) {
+                console.error('Error deleting signal:', err)
+              }
+              continue
+            }
           }
 
           // Apply signal
@@ -241,6 +289,11 @@ export function useVoiceChat(roomId, userId) {
   const removePeer = (peerId) => {
     const peerObj = peers.value[peerId]
     if (peerObj) {
+      // Clear timeout if exists
+      if (peerObj.timeout) {
+        clearTimeout(peerObj.timeout)
+      }
+
       if (peerObj.peer && !peerObj.peer.destroyed) {
         peerObj.peer.destroy()
       }
