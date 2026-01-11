@@ -118,7 +118,19 @@ export function useVoiceChat(roomId, userId) {
           { urls: 'stun:stun.l.google.com:19302' },
           { urls: 'stun:stun1.l.google.com:19302' },
 
-          // Free TURN servers for NAT traversal
+          // Your own TURN server (Primary - fastest and most reliable!)
+          {
+            urls: 'turn:192.168.2.24:3478',
+            username: 'testuser',
+            credential: 'testpass123'
+          },
+          {
+            urls: 'turn:192.168.2.24:3478?transport=tcp',
+            username: 'testuser',
+            credential: 'testpass123'
+          },
+
+          // Fallback: Free TURN servers (if your server is unreachable)
           {
             urls: 'turn:openrelay.metered.ca:80',
             username: 'openrelayproject',
@@ -126,11 +138,6 @@ export function useVoiceChat(roomId, userId) {
           },
           {
             urls: 'turn:openrelay.metered.ca:443',
-            username: 'openrelayproject',
-            credential: 'openrelayproject'
-          },
-          {
-            urls: 'turn:openrelay.metered.ca:443?transport=tcp',
             username: 'openrelayproject',
             credential: 'openrelayproject'
           }
