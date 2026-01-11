@@ -355,13 +355,18 @@ const emit = defineEmits(['toggle-voice', 'toggle-mute']);
 /* Mobile */
 @media (max-width: 768px) {
   .voice-controls {
-    border-top: none;
-    border-left: 1px solid var(--glass-border);
-    flex: 0 0 auto;
-    display: flex;
-    flex-direction: column;
-
-    padding: 0;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    border: none;
+    border-top: 1px solid var(--glass-border);
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    padding: 0.75rem;
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
   }
 
   .voice-controls__header {
@@ -372,19 +377,25 @@ const emit = defineEmits(['toggle-voice', 'toggle-mute']);
     display: none;
   }
 
+  .voice-controls__error {
+    margin-bottom: 0.5rem;
+    font-size: 0.75rem;
+  }
+
   .voice-controls__buttons {
     flex-direction: row;
+    gap: 0.75rem;
   }
 
   .voice-controls__btn {
     flex: 1;
     justify-content: center;
-    padding: 0.75rem;
-    border-radius: 0;
+    padding: 1rem 0.75rem;
+    border-radius: 12px;
   }
 
   .voice-controls__btn span {
-    display: none;
+    font-size: 0.8rem;
   }
 
   .voice-controls__visualizer {

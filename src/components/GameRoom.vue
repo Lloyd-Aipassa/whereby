@@ -609,5 +609,9 @@ onUnmounted(async () => {
     padding: 0.375rem 0.75rem;
     font-size: 0.7rem;
   }
+
+  .gameroom__input-area {
+    padding-bottom: calc(1rem + 90px + env(safe-area-inset-bottom));
+  }
 }
 </style>
