@@ -1,4 +1,4 @@
-import { ref, onUnmounted, computed } from 'vue'
+import { ref, computed } from 'vue'
 import { db } from '../firebase/config'
 import {
   collection,
@@ -118,14 +118,14 @@ export function useVoiceChat(roomId, userId) {
           { urls: 'stun:stun.l.google.com:19302' },
           { urls: 'stun:stun1.l.google.com:19302' },
 
-          // Your own TURN server (Primary - fastest and most reliable!)
+          // Your own TURN server via DuckDNS (Primary - fastest and most reliable!)
           {
-            urls: 'turn:192.168.2.24:3478',
+            urls: 'turn:lloyd-turn.duckdns.org:3478',
             username: 'testuser',
             credential: 'testpass123'
           },
           {
-            urls: 'turn:192.168.2.24:3478?transport=tcp',
+            urls: 'turn:lloyd-turn.duckdns.org:3478?transport=tcp',
             username: 'testuser',
             credential: 'testpass123'
           },
@@ -376,10 +376,8 @@ export function useVoiceChat(roomId, userId) {
     peers.value = {}
   }
 
-  // Cleanup on unmount
-  onUnmounted(() => {
-    stopVoiceChat()
-  })
+  // Note: Cleanup should be handled manually by calling stopVoiceChat()
+  // onUnmounted is not used here because this composable may be called outside setup()
 
   return {
     localStream,

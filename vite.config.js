@@ -11,7 +11,8 @@ export default defineConfig({
         Buffer: true,
         global: true,
         process: true
-      }
+      },
+      protocolImports: true
     })
   ],
   resolve: {
