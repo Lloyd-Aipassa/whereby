@@ -90,9 +90,10 @@ export function useVoiceChat(roomId, userId) {
       // This ensures full mesh connectivity
       for (const user of otherUsers) {
         if (user.id !== userId && user.isVoiceActive && !peers.value[user.id]) {
-          // Initiate connection based on consistent rule (higher ID initiates)
-          const shouldInitiate = userId > user.id
-          console.log(`Connecting to voice-active user ${user.username} (${user.id}), initiator: ${shouldInitiate}`)
+          // Initiate connection based on consistent rule (lexicographically higher ID initiates)
+          // Use localeCompare for consistent string comparison
+          const shouldInitiate = userId.localeCompare(user.id) > 0
+          console.log(`🔄 Connecting to voice-active user ${user.username} (${user.id}), initiator: ${shouldInitiate}`)
           await createPeerConnection(user.id, shouldInitiate)
         }
       }
@@ -157,7 +158,14 @@ export function useVoiceChat(roomId, userId) {
     // Add connection timeout
     peers.value[peerId].timeout = setTimeout(() => {
       if (peers.value[peerId] && !peers.value[peerId].connected) {
-        console.error(`Connection to ${peerId} timed out after 30s`)
+        console.error(`⏱️ Connection to ${peerId} timed out after 30s - likely NAT/firewall issue or TURN server unreachable`)
+
+        // Log ICE connection state for debugging
+        if (peer._pc) {
+          console.error(`ICE connection state: ${peer._pc.iceConnectionState}`)
+          console.error(`ICE gathering state: ${peer._pc.iceGatheringState}`)
+        }
+
         removePeer(peerId)
       }
     }, 30000) // 30 second timeout
@@ -165,6 +173,18 @@ export function useVoiceChat(roomId, userId) {
     // Handle signal (offer/answer/ice candidates)
     peer.on('signal', async (signalData) => {
       try {
+        // Log ICE candidates to diagnose connection issues
+        if (signalData.type === 'offer' || signalData.type === 'answer') {
+          console.log(`📡 Sending ${signalData.type} to ${peerId}`)
+        } else if (signalData.candidate) {
+          const candidate = signalData.candidate
+          console.log(`🔌 ICE candidate for ${peerId}:`, {
+            type: candidate.candidate?.includes('relay') ? 'RELAY (TURN)' :
+                  candidate.candidate?.includes('srflx') ? 'SRFLX (STUN)' : 'HOST (local)',
+            protocol: candidate.candidate?.includes('udp') ? 'UDP' : 'TCP',
+            candidate: candidate.candidate
+          })
+        }
         await sendSignal(peerId, signalData)
       } catch (err) {
         console.error('Error sending signal:', err)
@@ -180,7 +200,23 @@ export function useVoiceChat(roomId, userId) {
 
     // Handle connection
     peer.on('connect', () => {
-      console.log(`Connected to ${peerId}`)
+      console.log(`✅ Connected to ${peerId}`)
+
+      // Log which type of connection was established
+      if (peer._pc) {
+        peer._pc.getStats().then(stats => {
+          stats.forEach(report => {
+            if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+              console.log(`🎯 Connection type for ${peerId}:`, {
+                local: report.localCandidateId,
+                remote: report.remoteCandidateId,
+                state: report.state
+              })
+            }
+          })
+        })
+      }
+
       if (peers.value[peerId]) {
         peers.value[peerId].connected = true
         // Clear the connection timeout
@@ -193,7 +229,11 @@ export function useVoiceChat(roomId, userId) {
 
     // Handle errors
     peer.on('error', (err) => {
-      console.error(`Peer error with ${peerId}:`, err)
+      console.error(`❌ Peer error with ${peerId}:`, {
+        message: err.message,
+        code: err.code,
+        error: err
+      })
       removePeer(peerId)
     })
 
@@ -319,8 +359,8 @@ export function useVoiceChat(roomId, userId) {
   // Handle new user joining or existing user activating voice
   const handleUserJoined = async (user) => {
     if (user.id !== userId && user.isVoiceActive && !peers.value[user.id] && localStream.value) {
-      // We initiate if our ID is "greater"
-      const shouldInitiate = userId > user.id
+      // We initiate if our ID is lexicographically "greater"
+      const shouldInitiate = userId.localeCompare(user.id) > 0
       console.log(`User ${user.username} activated voice, connecting...`)
       await createPeerConnection(user.id, shouldInitiate)
     }
