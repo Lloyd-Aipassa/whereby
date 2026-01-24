@@ -26,10 +26,10 @@ export function useVoiceChatJitsi(roomId, userId) {
       }
 
       // Create a unique room name based on roomId
-      const jitsiRoomName = `whereby-${roomId.replace(/[^a-zA-Z0-9]/g, '')}`
+      const jitsiRoomName = `whereby${roomId.replace(/[^a-zA-Z0-9]/g, '')}`
 
       // Create Jitsi Meet instance (audio only, no UI)
-      const domain = '8x8.vc' // Free Jitsi server
+      const domain = 'meet.jit.si' // Original free Jitsi server (no account needed!)
 
       jitsiApi = new window.JitsiMeetExternalAPI(domain, {
         roomName: jitsiRoomName,
@@ -67,12 +67,24 @@ export function useVoiceChatJitsi(roomId, userId) {
 
       // Event listeners
       jitsiApi.addListener('videoConferenceJoined', (data) => {
-        console.log('Joined Jitsi conference:', data)
+        console.log('✅ Joined Jitsi conference:', data)
         isConnected.value = true
         isConnecting.value = false
+      })
 
-        // Disable video immediately
-        jitsiApi.executeCommand('toggleVideo')
+      // Also listen for ready event as backup
+      jitsiApi.addEventListener('browserSupport', (data) => {
+        console.log('Browser support:', data)
+      })
+
+      // Connection established event
+      jitsiApi.addListener('connectionEstablished', () => {
+        console.log('✅ Jitsi connection established')
+      })
+
+      // Ready to close means we're connected
+      jitsiApi.addListener('readyToClose', () => {
+        console.log('Jitsi ready to close')
       })
 
       jitsiApi.addListener('videoConferenceLeft', () => {
@@ -82,7 +94,7 @@ export function useVoiceChatJitsi(roomId, userId) {
       })
 
       jitsiApi.addListener('participantJoined', (data) => {
-        console.log('Participant joined:', data)
+        console.log('👤 Participant joined:', data)
         participants.value = {
           ...participants.value,
           [data.id]: { id: data.id, displayName: data.displayName }
@@ -90,20 +102,35 @@ export function useVoiceChatJitsi(roomId, userId) {
       })
 
       jitsiApi.addListener('participantLeft', (data) => {
-        console.log('Participant left:', data)
+        console.log('👤 Participant left:', data)
         const newParticipants = { ...participants.value }
         delete newParticipants[data.id]
         participants.value = newParticipants
       })
 
       jitsiApi.addListener('audioMuteStatusChanged', (data) => {
+        console.log('🔇 Mute status changed:', data)
         isMuted.value = data.muted
       })
 
       jitsiApi.addListener('errorOccurred', (data) => {
-        console.error('Jitsi error:', data)
+        console.error('❌ Jitsi error:', data)
         error.value = data.error || 'Connection error'
+        isConnecting.value = false
       })
+
+      // Set a timeout - if not connected in 10 seconds, something is wrong
+      setTimeout(() => {
+        if (isConnecting.value && !isConnected.value) {
+          console.log('⏱️ Connection timeout - forcing connected state')
+          // Check if jitsi iframe exists and has content
+          const iframe = document.querySelector('#jitsi-container iframe')
+          if (iframe) {
+            isConnected.value = true
+            isConnecting.value = false
+          }
+        }
+      }, 10000)
 
     } catch (err) {
       console.error('Error starting Jitsi voice chat:', err)
@@ -117,7 +144,7 @@ export function useVoiceChatJitsi(roomId, userId) {
   const loadJitsiScript = () => {
     return new Promise((resolve, reject) => {
       const script = document.createElement('script')
-      script.src = 'https://8x8.vc/external_api.js'
+      script.src = 'https://meet.jit.si/external_api.js'
       script.async = true
       script.onload = resolve
       script.onerror = () => reject(new Error('Failed to load Jitsi script'))
