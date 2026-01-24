@@ -2,9 +2,9 @@
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useGameroom } from '../composables/useGameroom'
 // Switch between voice chat implementations:
-// import { useVoiceChat } from '../composables/useVoiceChat'  // SimplePeer version (your TURN server)
+import { useVoiceChat } from '../composables/useVoiceChat'  // SimplePeer version (your TURN server)
 // import { useVoiceChatDaily as useVoiceChat } from '../composables/useVoiceChatDaily'  // Daily.co (needs API key)
-import { useVoiceChatJitsi as useVoiceChat } from '../composables/useVoiceChatJitsi'  // Jitsi (100% free!)
+// import { useVoiceChatJitsi as useVoiceChat } from '../composables/useVoiceChatJitsi'  // Jitsi (probleem met events)
 import { useAdmin } from '../composables/useAdmin'
 import { useSession } from '../composables/useSession'
 import UserList from './UserList.vue'
