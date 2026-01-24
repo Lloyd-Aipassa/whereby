@@ -256,12 +256,20 @@ export function useVoiceChat(roomId, userId) {
 
     // Handle errors
     peer.on('error', (err) => {
+      // Ignore "Close called" errors - these happen when the other user intentionally leaves
+      if (err.message && err.message.includes('Close called')) {
+        console.log(`ℹ️ Peer ${peerId} closed connection intentionally`)
+        removePeer(peerId, false) // Don't reconnect - they left on purpose
+        return
+      }
+
       console.error(`❌ Peer error with ${peerId}:`, {
         message: err.message,
         code: err.code,
         error: err
       })
-      removePeer(peerId)
+      // Only attempt reconnect for unexpected errors
+      removePeer(peerId, true)
     })
 
     // Handle close
@@ -350,8 +358,13 @@ export function useVoiceChat(roomId, userId) {
             try {
               peerObj.peer.signal(signal)
             } catch (err) {
-              console.error('Error applying signal:', err)
+              // Ignore errors for signals on closing connections
+              if (!err.message?.includes('Close called')) {
+                console.error('Error applying signal:', err)
+              }
             }
+          } else {
+            console.log(`Ignoring signal for ${fromUserId} - peer not ready or destroyed`)
           }
 
           // Delete processed signal
