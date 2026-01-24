@@ -132,7 +132,16 @@ export function useVoiceChat(roomId, userId) {
 
   // Create a peer connection
   const createPeerConnection = async (peerId, initiator) => {
-    if (!localStream.value) return
+    if (!localStream.value) {
+      console.warn(`Cannot create peer connection to ${peerId} - no local stream`)
+      return
+    }
+
+    // Prevent duplicate connections
+    if (peers.value[peerId]) {
+      console.warn(`⚠️ Peer connection to ${peerId} already exists, skipping`)
+      return
+    }
 
     console.log(`Creating peer connection to ${peerId}, initiator: ${initiator}`)
 
@@ -275,6 +284,8 @@ export function useVoiceChat(roomId, userId) {
     // Handle close
     peer.on('close', () => {
       console.log(`Connection closed with ${peerId}`)
+      // Log stack trace to see what triggered the close
+      console.trace(`Close triggered for ${peerId}`)
       removePeer(peerId)
     })
 
@@ -335,11 +346,16 @@ export function useVoiceChat(roomId, userId) {
           // Create peer if doesn't exist AND it's an offer
           if (!peers.value[fromUserId]) {
             if (signal.type === 'offer') {
-              console.log(`Creating peer connection for incoming offer from ${fromUserId}`)
-              await createPeerConnection(fromUserId, false)
+              // Double-check we still don't have a peer (race condition prevention)
+              if (peers.value[fromUserId]) {
+                console.log(`Peer ${fromUserId} was created while processing, skipping`)
+              } else {
+                console.log(`Creating peer connection for incoming offer from ${fromUserId}`)
+                await createPeerConnection(fromUserId, false)
 
-              // Wait a bit for peer to initialize
-              await new Promise(resolve => setTimeout(resolve, 100))
+                // Wait a bit for peer to initialize
+                await new Promise(resolve => setTimeout(resolve, 100))
+              }
             } else {
               console.warn(`Received ${signal.type} from ${fromUserId} but no peer exists, ignoring`)
               // Delete the signal and skip

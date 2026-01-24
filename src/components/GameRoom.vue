@@ -1,7 +1,10 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useGameroom } from '../composables/useGameroom'
-import { useVoiceChat } from '../composables/useVoiceChat'
+// Switch between voice chat implementations:
+// import { useVoiceChat } from '../composables/useVoiceChat'  // SimplePeer version (your TURN server)
+// import { useVoiceChatDaily as useVoiceChat } from '../composables/useVoiceChatDaily'  // Daily.co (needs API key)
+import { useVoiceChatJitsi as useVoiceChat } from '../composables/useVoiceChatJitsi'  // Jitsi (100% free!)
 import { useAdmin } from '../composables/useAdmin'
 import { useSession } from '../composables/useSession'
 import UserList from './UserList.vue'
