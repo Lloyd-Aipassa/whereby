@@ -75,6 +75,30 @@ export function useVoiceChat(roomId, userId) {
     }
   }
 
+  // Clean up stale signals before starting
+  const cleanupStaleSignals = async () => {
+    try {
+      const signalsRef = collection(db, 'gamerooms', roomId, 'signals')
+
+      // Delete old signals to/from this user
+      const q1 = query(signalsRef, where('to', '==', userId))
+      const snapshot1 = await getDocs(q1)
+      for (const doc of snapshot1.docs) {
+        await deleteDoc(doc.ref)
+      }
+
+      const q2 = query(signalsRef, where('from', '==', userId))
+      const snapshot2 = await getDocs(q2)
+      for (const doc of snapshot2.docs) {
+        await deleteDoc(doc.ref)
+      }
+
+      console.log('🧹 Cleaned up stale signals')
+    } catch (err) {
+      console.error('Error cleaning up stale signals:', err)
+    }
+  }
+
   // Start voice chat and connect to other users
   const startVoiceChat = async (otherUsers) => {
     try {
@@ -82,6 +106,9 @@ export function useVoiceChat(roomId, userId) {
       if (!localStream.value) {
         await initMicrophone()
       }
+
+      // Clean up any stale signals before starting
+      await cleanupStaleSignals()
 
       // Listen for incoming signals
       listenForSignals()
@@ -242,6 +269,28 @@ export function useVoiceChat(roomId, userId) {
       console.log(`Connection closed with ${peerId}`)
       removePeer(peerId)
     })
+
+    // Monitor ICE connection state for disconnections
+    if (peer._pc) {
+      peer._pc.oniceconnectionstatechange = () => {
+        const state = peer._pc.iceConnectionState
+        console.log(`🧊 ICE state for ${peerId}: ${state}`)
+
+        if (state === 'disconnected') {
+          console.warn(`⚠️ Connection to ${peerId} disconnected, waiting for recovery...`)
+          // Give it some time to recover
+          setTimeout(() => {
+            if (peer._pc && peer._pc.iceConnectionState === 'disconnected') {
+              console.error(`❌ Connection to ${peerId} did not recover, attempting reconnect`)
+              removePeer(peerId, true) // true = attempt reconnect
+            }
+          }, 5000)
+        } else if (state === 'failed') {
+          console.error(`❌ ICE connection to ${peerId} failed, attempting reconnect`)
+          removePeer(peerId, true) // true = attempt reconnect
+        }
+      }
+    }
   }
 
   // Send signal through Firebase
@@ -257,6 +306,12 @@ export function useVoiceChat(roomId, userId) {
 
   // Listen for incoming signals
   const listenForSignals = () => {
+    // Prevent duplicate listeners
+    if (signalUnsubscribe) {
+      console.log('Signal listener already active, skipping')
+      return
+    }
+
     const signalsRef = collection(db, 'gamerooms', roomId, 'signals')
     const q = query(signalsRef, where('to', '==', userId))
 
@@ -333,7 +388,7 @@ export function useVoiceChat(roomId, userId) {
   }
 
   // Remove a peer connection
-  const removePeer = (peerId) => {
+  const removePeer = (peerId, shouldReconnect = false) => {
     const peerObj = peers.value[peerId]
     if (peerObj) {
       // Clear timeout if exists
@@ -353,6 +408,17 @@ export function useVoiceChat(roomId, userId) {
       }
 
       delete peers.value[peerId]
+
+      // Attempt reconnect if requested and we still have a local stream
+      if (shouldReconnect && localStream.value) {
+        console.log(`🔄 Attempting to reconnect to ${peerId}...`)
+        setTimeout(() => {
+          if (localStream.value && !peers.value[peerId]) {
+            const shouldInitiate = userId.localeCompare(peerId) > 0
+            createPeerConnection(peerId, shouldInitiate)
+          }
+        }, 2000)
+      }
     }
   }
 

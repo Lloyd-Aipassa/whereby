@@ -150,12 +150,21 @@ const handleToggleVoice = async () => {
     await updateVoiceState(props.roomId, userId.value, false)
   } else {
     try {
-      await voiceChat.startVoiceChat(users.value)
-      isVoiceActive.value = true
-      // Update Firestore: voice active
+      // IMPORTANT: First set voice state in Firestore so other users see us as voice-active
+      // This prevents race conditions where we try to connect before others know we're joining
       await updateVoiceState(props.roomId, userId.value, true)
+      isVoiceActive.value = true
+
+      // Small delay to let Firestore sync to other clients
+      await new Promise(resolve => setTimeout(resolve, 300))
+
+      // Now start voice chat - other users will already see us as voice-active
+      await voiceChat.startVoiceChat(users.value)
     } catch (err) {
       console.error('Failed to start voice chat:', err)
+      // Rollback state if failed
+      isVoiceActive.value = false
+      await updateVoiceState(props.roomId, userId.value, false)
     }
   }
 }
